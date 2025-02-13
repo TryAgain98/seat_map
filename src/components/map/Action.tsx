@@ -1,8 +1,9 @@
-import { CircleIcon, MousePointer } from "lucide-react";
+import { CircleIcon, MousePointer, RectangleHorizontal } from "lucide-react";
 
-enum ACTION {
+export enum ACTION {
   Mouse = "Mouse",
   Seat = "Seat",
+  RectShape = "RectShape",
 }
 
 interface IProps {
@@ -37,6 +38,15 @@ function Action({ actionType, setActionType, setGhostSeat }: IProps) {
         color={actionType === ACTION.Seat ? "blue" : "black"}
         className="cursor-pointer"
       />
+
+      {/* <RectangleHorizontal
+        onClick={() => {
+          setGhostSeat(null);
+          setActionType(ACTION.RectShape);
+        }}
+        color={actionType === ACTION.RectShape ? "blue" : "black"}
+        className="cursor-pointer"
+      /> */}
     </div>
   );
 }

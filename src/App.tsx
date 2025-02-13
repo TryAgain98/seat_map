@@ -10,18 +10,13 @@ import {
   STAGE_HEIGHT,
   STAGE_WIDTH,
 } from "./constants";
-import Action from "./components/map/Action";
+import Action, { ACTION } from "./components/map/Action";
 
 interface SeatData {
   id: number;
   x: number;
   y: number;
   name: string;
-}
-
-enum ACTION {
-  Mouse = "Mouse",
-  Seat = "Seat",
 }
 
 const App: React.FC = () => {
@@ -68,6 +63,7 @@ const App: React.FC = () => {
     if (!pointer) return;
 
     const scale = stage.scaleX();
+    console.log({ scale });
     const correctedX = (pointer.x - stage.x()) / scale;
     const correctedY = (pointer.y - stage.y()) / scale;
 
@@ -143,101 +139,106 @@ const App: React.FC = () => {
         setActionType={setActionType}
         setGhostSeat={setGhostSeat}
       />
+      <div className="border-gray-300 border-[1px]">
+        <Stage
+          onClick={handleStageClick}
+          onMouseMove={handleMouseMove}
+          width={STAGE_WIDTH}
+          height={STAGE_HEIGHT}
+          ref={stageRef}
+          draggable
+          onWheel={handleWheel}
+        >
+          <Layer>
+            <GridMap stageRef={stageRef} />
+            {seats.map((circle) => (
+              <Group
+                key={circle.id}
+                x={circle.x}
+                y={circle.y}
+                draggable
+                onClick={(e) => {
+                  e.cancelBubble = true;
+                  handleSeatClick(circle);
+                }}
+                onDragEnd={(e) => handleDragEnd(e, circle.id)}
+              >
+                <Circle radius={SEAT.RADIUS} fill="blue" />
+                <Text
+                  text={circle.name}
+                  fontSize={12}
+                  fill="white"
+                  align="center"
+                  verticalAlign="middle"
+                  width={30}
+                  height={30}
+                  offsetX={15}
+                  offsetY={15}
+                />
+              </Group>
+            ))}
 
-      <Stage
-        onClick={handleStageClick}
-        onMouseMove={handleMouseMove}
-        width={STAGE_WIDTH}
-        height={STAGE_HEIGHT}
-        ref={stageRef}
-        draggable
-        onWheel={handleWheel}
-      >
-        <Layer>
-          <GridMap />
-          {seats.map((circle) => (
-            <Group
-              key={circle.id}
-              x={circle.x}
-              y={circle.y}
-              draggable
-              onClick={(e) => {
-                e.cancelBubble = true;
-                handleSeatClick(circle);
-              }}
-              onDragEnd={(e) => handleDragEnd(e, circle.id)}
-            >
-              <Circle radius={SEAT.RADIUS} fill="blue" />
-              <Text
-                text={circle.name}
-                fontSize={12}
-                fill="white"
-                align="center"
-                verticalAlign="middle"
-                width={30}
-                height={30}
-                offsetX={15}
-                offsetY={15}
-              />
-            </Group>
-          ))}
-
-          {ghostSeat && (
-            <>
-              <Circle
-                x={ghostSeat.x}
-                y={ghostSeat.y}
-                radius={SEAT.RADIUS}
-                fill="rgba(0,0,255,0.5)"
-              />
-              <Line
-                points={[
-                  0,
-                  ghostSeat.y - SEAT.RADIUS,
-                  STAGE_WIDTH,
-                  ghostSeat.y - SEAT.RADIUS,
-                ]}
-                stroke="red"
-                strokeWidth={1}
-                dash={[4, 4]}
-              />
-              <Line
-                points={[
-                  0,
-                  ghostSeat.y + SEAT.RADIUS,
-                  STAGE_WIDTH,
-                  ghostSeat.y + SEAT.RADIUS,
-                ]}
-                stroke="red"
-                strokeWidth={1}
-                dash={[4, 4]}
-              />
-              <Line
-                points={[
-                  ghostSeat.x - SEAT.RADIUS,
-                  0,
-                  ghostSeat.x - SEAT.RADIUS,
-                  STAGE_HEIGHT,
-                ]}
-                stroke="red"
-                strokeWidth={1}
-                dash={[4, 4]}
-              />
-              <Line
-                points={[
-                  ghostSeat.x + SEAT.RADIUS,
-                  0,
-                  ghostSeat.x + SEAT.RADIUS,
-                  STAGE_HEIGHT,
-                ]}
-                stroke="red"
-                strokeWidth={1}
-                dash={[4, 4]}
-              />
-            </>
-          )}
-        </Layer>
-      </Stage>
+            {ghostSeat && (
+              <>
+                <Circle
+                  x={ghostSeat.x}
+                  y={ghostSeat.y}
+                  radius={SEAT.RADIUS}
+                  fill="rgba(0,0,255,0.5)"
+                />
+                <Line
+                  points={[
+                    -stageRef.current?.x() / (stageRef.current?.scaleX() || 1),
+                    ghostSeat.y - SEAT.RADIUS,
+                    (-stageRef.current?.x() + window.innerWidth) /
+                      (stageRef.current?.scaleX() || 1),
+                    ghostSeat.y - SEAT.RADIUS,
+                  ]}
+                  stroke="red"
+                  strokeWidth={1}
+                  dash={[4, 4]}
+                />
+                <Line
+                  points={[
+                    -stageRef.current?.x() / (stageRef.current?.scaleX() || 1),
+                    ghostSeat.y + SEAT.RADIUS,
+                    (-stageRef.current?.x() + window.innerWidth) /
+                      (stageRef.current?.scaleX() || 1),
+                    ghostSeat.y + SEAT.RADIUS,
+                  ]}
+                  stroke="red"
+                  strokeWidth={1}
+                  dash={[4, 4]}
+                />
+                <Line
+                  points={[
+                    ghostSeat.x - SEAT.RADIUS,
+                    -stageRef.current?.y() / (stageRef.current?.scaleX() || 1),
+                    ghostSeat.x - SEAT.RADIUS,
+                    (-stageRef.current?.y() + window.innerHeight) /
+                      (stageRef.current?.scaleX() || 1),
+                  ]}
+                  stroke="red"
+                  strokeWidth={1}
+                  dash={[4, 4]}
+                />
+                <Line
+                  points={[
+                    ghostSeat.x + SEAT.RADIUS,
+                    -stageRef.current?.y() / (stageRef.current?.scaleX() || 1),
+                    ghostSeat.x + SEAT.RADIUS,
+                    (-stageRef.current?.y() + window.innerHeight) /
+                      (stageRef.current?.scaleX() || 1),
+                  ]}
+                  stroke="red"
+                  strokeWidth={1}
+                  dash={[4, 4]}
+                />
+              </>
+            )}
+          </Layer>
+        </Stage>
+      </div>
       {/* edit form */}
       {selectedSeat && (
         <div className=" top-5 right-5 bg-white shadow-lg p-4 border rounded-md">
