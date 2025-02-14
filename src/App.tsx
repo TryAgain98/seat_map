@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Stage, Layer, Circle, Text, Group, Line } from "react-konva";
+import { Stage, Layer, Circle, Text, Group, Rect } from "react-konva";
 import { KonvaEventObject } from "konva/lib/Node";
 import { GridMap } from "./components/map/GridMap";
 import {
@@ -11,6 +11,7 @@ import {
   STAGE_WIDTH,
 } from "./constants";
 import Action, { ACTION } from "./components/map/Action";
+import GhostSeat from "./components/map/seat/GhostSeat";
 
 interface SeatData {
   id: number;
@@ -23,12 +24,23 @@ const App: React.FC = () => {
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [actionType, setActionType] = useState<ACTION>(ACTION.Mouse);
   const stageRef = useRef<any>(null);
+
   const [seats, setSeats] = useState<SeatData[]>([]);
   const [ghostSeat, setGhostSeat] = useState<{
     x: number;
     y: number;
   } | null>(null);
 
+  //select multiple
+  const [selectedSeats, setSelectedSeats] = useState<SeatData[]>([]);
+  // Thêm state cho selection box
+  const [selectionBox, setSelectionBox] = useState<{
+    start: { x: number; y: number } | null;
+    current: { x: number; y: number } | null;
+  }>({ start: null, current: null });
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  console.log({ selectedSeats });
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
@@ -63,7 +75,6 @@ const App: React.FC = () => {
     if (!pointer) return;
 
     const scale = stage.scaleX();
-    console.log({ scale });
     const correctedX = (pointer.x - stage.x()) / scale;
     const correctedY = (pointer.y - stage.y()) / scale;
 
@@ -91,6 +102,23 @@ const App: React.FC = () => {
         x: Math.round(correctedX / GRID_SIZE) * GRID_SIZE,
         y: Math.round(correctedY / GRID_SIZE) * GRID_SIZE,
       });
+    } else if (isSelecting) {
+      setSelectionBox((prev) => ({
+        ...prev,
+        current: { x: correctedX, y: correctedY },
+      }));
+
+      if (selectionBox.start) {
+        const x1 = Math.min(selectionBox.start.x, correctedX);
+        const x2 = Math.max(selectionBox.start.x, correctedX);
+        const y1 = Math.min(selectionBox.start.y, correctedY);
+        const y2 = Math.max(selectionBox.start.y, correctedY);
+
+        const selectedSeats = seats.filter(
+          (seat) => seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2
+        );
+        setSelectedSeats(selectedSeats);
+      }
     }
   };
 
@@ -132,6 +160,31 @@ const App: React.FC = () => {
     );
   };
 
+  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    if (actionType !== ACTION.Mouse) return;
+
+    const stage = stageRef.current;
+    const point = stage.getPointerPosition();
+    const scale = stage.scaleX();
+
+    setIsSelecting(true);
+    setSelectionBox({
+      start: {
+        x: (point.x - stage.x()) / scale,
+        y: (point.y - stage.y()) / scale,
+      },
+      current: {
+        x: (point.x - stage.x()) / scale,
+        y: (point.y - stage.y()) / scale,
+      },
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsSelecting(false);
+    setSelectionBox({ start: null, current: null });
+  };
+
   return (
     <div className="flex gap-1 p-5">
       <Action
@@ -146,8 +199,10 @@ const App: React.FC = () => {
           width={STAGE_WIDTH}
           height={STAGE_HEIGHT}
           ref={stageRef}
-          draggable
+          // draggable
           onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
         >
           <Layer>
             <GridMap stageRef={stageRef} />
@@ -178,63 +233,24 @@ const App: React.FC = () => {
               </Group>
             ))}
 
-            {ghostSeat && (
-              <>
-                <Circle
-                  x={ghostSeat.x}
-                  y={ghostSeat.y}
-                  radius={SEAT.RADIUS}
-                  fill="rgba(0,0,255,0.5)"
+            <GhostSeat ghostSeat={ghostSeat} stageRef={stageRef} />
+
+            {/* Vẽ selection box */}
+            {isSelecting && selectionBox.start && selectionBox.current && (
+              <Group>
+                <Rect
+                  x={Math.min(selectionBox.start.x, selectionBox.current.x)}
+                  y={Math.min(selectionBox.start.y, selectionBox.current.y)}
+                  width={Math.abs(
+                    selectionBox.current.x - selectionBox.start.x
+                  )}
+                  height={Math.abs(
+                    selectionBox.current.y - selectionBox.start.y
+                  )}
+                  fill="rgba(0, 0, 255, 0.1)"
+                  stroke="blue"
                 />
-                <Line
-                  points={[
-                    -stageRef.current?.x() / (stageRef.current?.scaleX() || 1),
-                    ghostSeat.y - SEAT.RADIUS,
-                    (-stageRef.current?.x() + window.innerWidth) /
-                      (stageRef.current?.scaleX() || 1),
-                    ghostSeat.y - SEAT.RADIUS,
-                  ]}
-                  stroke="red"
-                  strokeWidth={1}
-                  dash={[4, 4]}
-                />
-                <Line
-                  points={[
-                    -stageRef.current?.x() / (stageRef.current?.scaleX() || 1),
-                    ghostSeat.y + SEAT.RADIUS,
-                    (-stageRef.current?.x() + window.innerWidth) /
-                      (stageRef.current?.scaleX() || 1),
-                    ghostSeat.y + SEAT.RADIUS,
-                  ]}
-                  stroke="red"
-                  strokeWidth={1}
-                  dash={[4, 4]}
-                />
-                <Line
-                  points={[
-                    ghostSeat.x - SEAT.RADIUS,
-                    -stageRef.current?.y() / (stageRef.current?.scaleX() || 1),
-                    ghostSeat.x - SEAT.RADIUS,
-                    (-stageRef.current?.y() + window.innerHeight) /
-                      (stageRef.current?.scaleX() || 1),
-                  ]}
-                  stroke="red"
-                  strokeWidth={1}
-                  dash={[4, 4]}
-                />
-                <Line
-                  points={[
-                    ghostSeat.x + SEAT.RADIUS,
-                    -stageRef.current?.y() / (stageRef.current?.scaleX() || 1),
-                    ghostSeat.x + SEAT.RADIUS,
-                    (-stageRef.current?.y() + window.innerHeight) /
-                      (stageRef.current?.scaleX() || 1),
-                  ]}
-                  stroke="red"
-                  strokeWidth={1}
-                  dash={[4, 4]}
-                />
-              </>
+              </Group>
             )}
           </Layer>
         </Stage>
