@@ -18,6 +18,7 @@ interface SeatData {
   x: number;
   y: number;
   name: string;
+  isSelected?: boolean;
 }
 
 const App: React.FC = () => {
@@ -30,17 +31,15 @@ const App: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
+  const seatsDeleted = seats.filter((seat) => seat.isSelected);
 
   //select multiple
-  const [selectedSeats, setSelectedSeats] = useState<SeatData[]>([]);
-  // Thêm state cho selection box
   const [selectionBox, setSelectionBox] = useState<{
     start: { x: number; y: number } | null;
     current: { x: number; y: number } | null;
   }>({ start: null, current: null });
   const [isSelecting, setIsSelecting] = useState(false);
 
-  console.log({ selectedSeats });
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
@@ -113,11 +112,17 @@ const App: React.FC = () => {
         const x2 = Math.max(selectionBox.start.x, correctedX);
         const y1 = Math.min(selectionBox.start.y, correctedY);
         const y2 = Math.max(selectionBox.start.y, correctedY);
-
-        const selectedSeats = seats.filter(
-          (seat) => seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2
+        setSeats(
+          seats.map((seat) => ({
+            ...seat,
+            isSelected:
+              seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2,
+          }))
         );
-        setSelectedSeats(selectedSeats);
+        // const selectedSeats = seats.filter(
+        //   (seat) => seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2
+        // );
+        // setSelectedSeats(selectedSeats);
       }
     }
   };
@@ -185,6 +190,10 @@ const App: React.FC = () => {
     setSelectionBox({ start: null, current: null });
   };
 
+  const handleDeleteSelectedSeats = () => {
+    setSeats((prev) => prev.filter((seat) => !seat.isSelected));
+  };
+
   return (
     <div className="flex gap-1 p-5">
       <Action
@@ -218,7 +227,10 @@ const App: React.FC = () => {
                 }}
                 onDragEnd={(e) => handleDragEnd(e, circle.id)}
               >
-                <Circle radius={SEAT.RADIUS} fill="blue" />
+                <Circle
+                  radius={SEAT.RADIUS}
+                  fill={circle.isSelected ? "red" : "blue"}
+                />
                 <Text
                   text={circle.name}
                   fontSize={12}
@@ -255,6 +267,15 @@ const App: React.FC = () => {
           </Layer>
         </Stage>
       </div>
+
+      {seatsDeleted.length > 0 && (
+        <button
+          className="!bg-red-500 h-12 text-white px-4  rounded disabled:opacity-50"
+          onClick={handleDeleteSelectedSeats}
+        >
+          Delete seats {seatsDeleted.length}
+        </button>
+      )}
       {/* edit form */}
       {selectedSeat && (
         <div className=" top-5 right-5 bg-white shadow-lg p-4 border rounded-md">
