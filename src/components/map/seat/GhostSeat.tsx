@@ -1,15 +1,17 @@
 import { Circle, Line } from "react-konva";
 import { SEAT } from "../../../constants";
+import Konva from "konva";
+import { RefObject } from "react";
 
 interface IProps {
   ghostSeat: {
     x: number;
     y: number;
   } | null;
-  stageRef: any;
+  stageRef: RefObject<Konva.Stage | null>;
 }
 function GhostSeat({ ghostSeat, stageRef }: IProps) {
-  if (!ghostSeat) return;
+  if (!ghostSeat || !stageRef.current) return;
   return (
     <>
       <Circle

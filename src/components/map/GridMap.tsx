@@ -1,7 +1,13 @@
 import { Line } from "react-konva";
 import { GRID_SIZE } from "../../constants";
+import Konva from "konva";
+import { RefObject } from "react";
 
-export const GridMap = ({ stageRef }: { stageRef: any }) => {
+export const GridMap = ({
+  stageRef,
+}: {
+  stageRef: RefObject<Konva.Stage | null>;
+}) => {
   const stage = stageRef.current;
   const scale = stage?.scaleX() || 1;
   const stageX = stage?.x() || 0;

@@ -13,6 +13,7 @@ import {
 import Action, { ACTION } from "./components/map/Action";
 import GhostSeat from "./components/map/seat/GhostSeat";
 import SelectionBox from "./components/map/SelectionBox";
+import Konva from "konva";
 
 interface SeatData {
   id: number;
@@ -20,12 +21,15 @@ interface SeatData {
   y: number;
   name: string;
   isSelected?: boolean;
+  color?: string;
 }
+
+const PRESET_COLORS = ["#FF0000", "#00FF00", "#0000FF", "#FFD700"];
 
 const App: React.FC = () => {
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [actionType, setActionType] = useState<ACTION>(ACTION.Mouse);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
 
   const [seats, setSeats] = useState<SeatData[]>([]);
   const [ghostSeat, setGhostSeat] = useState<{
@@ -69,6 +73,7 @@ const App: React.FC = () => {
   };
 
   const handleStageClick = () => {
+    if (!stageRef.current) return;
     const stage = stageRef.current.getStage();
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
@@ -89,6 +94,7 @@ const App: React.FC = () => {
   };
 
   const handleMouseMove = () => {
+    if (!stageRef.current) return;
     const stage = stageRef.current.getStage();
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
@@ -163,13 +169,15 @@ const App: React.FC = () => {
     );
   };
 
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseDown = () => {
+    if (!stageRef.current) return;
     if (actionType !== ACTION.Mouse) return;
 
     const stage = stageRef.current;
     const point = stage.getPointerPosition();
     const scale = stage.scaleX();
 
+    if (!point) return;
     //handle for select item
     setIsSelecting(true);
     setSelectionBox({
@@ -192,7 +200,7 @@ const App: React.FC = () => {
   const handleDeleteSelectedSeats = () => {
     setSeats((prev) => prev.filter((seat) => !seat.isSelected));
   };
-
+  console.log({ seats });
   return (
     <div className="flex gap-1 p-5">
       <Action
@@ -229,7 +237,17 @@ const App: React.FC = () => {
               >
                 <Circle
                   radius={SEAT.RADIUS}
-                  fill={circle.isSelected ? "red" : "blue"}
+                  fill={circle.color || "#0000FF"}
+                  stroke={
+                    selectedSeat?.id === circle.id || circle.isSelected
+                      ? "black"
+                      : undefined
+                  }
+                  strokeWidth={
+                    selectedSeat?.id === circle.id || circle.isSelected
+                      ? 2
+                      : undefined
+                  }
                 />
                 <Text
                   text={circle.name}
@@ -244,7 +262,6 @@ const App: React.FC = () => {
                 />
               </Group>
             ))}
-
             <GhostSeat ghostSeat={ghostSeat} stageRef={stageRef} />
 
             <SelectionBox
@@ -273,6 +290,24 @@ const App: React.FC = () => {
             value={selectedSeat.name}
             onChange={handleEditSeat}
           />
+          <div className="flex gap-2 mb-2 mt-2">
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                className="w-8 h-8 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{ backgroundColor: color }}
+                onClick={() => {
+                  setSeats((prev) =>
+                    prev.map((seat) =>
+                      seat.id === selectedSeat?.id
+                        ? { ...seat, color: color }
+                        : seat
+                    )
+                  );
+                }}
+              />
+            ))}
+          </div>
           <div className="flex justify-end gap-2 mt-3">
             <button
               className="!bg-blue-500 text-white px-4 py-2 rounded"
