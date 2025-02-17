@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Stage, Layer, Circle, Text, Group, Rect } from "react-konva";
+import { Stage, Layer, Circle, Text, Group } from "react-konva";
 import { KonvaEventObject } from "konva/lib/Node";
 import { GridMap } from "./components/map/GridMap";
 import {
@@ -12,6 +12,7 @@ import {
 } from "./constants";
 import Action, { ACTION } from "./components/map/Action";
 import GhostSeat from "./components/map/seat/GhostSeat";
+import SelectionBox from "./components/map/SelectionBox";
 
 interface SeatData {
   id: number;
@@ -68,7 +69,6 @@ const App: React.FC = () => {
   };
 
   const handleStageClick = () => {
-    if (!ghostSeat) return;
     const stage = stageRef.current.getStage();
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
@@ -80,10 +80,12 @@ const App: React.FC = () => {
     const snappedX = Math.round(correctedX / GRID_SIZE) * GRID_SIZE;
     const snappedY = Math.round(correctedY / GRID_SIZE) * GRID_SIZE;
 
-    setSeats((prev) => [
-      ...prev,
-      { id: Date.now(), x: snappedX, y: snappedY, name: "" },
-    ]);
+    if (actionType === ACTION.Seat && ghostSeat) {
+      setSeats((prev) => [
+        ...prev,
+        { id: Date.now(), x: snappedX, y: snappedY, name: "" },
+      ]);
+    }
   };
 
   const handleMouseMove = () => {
@@ -119,10 +121,6 @@ const App: React.FC = () => {
               seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2,
           }))
         );
-        // const selectedSeats = seats.filter(
-        //   (seat) => seat.x >= x1 && seat.x <= x2 && seat.y >= y1 && seat.y <= y2
-        // );
-        // setSelectedSeats(selectedSeats);
       }
     }
   };
@@ -172,6 +170,7 @@ const App: React.FC = () => {
     const point = stage.getPointerPosition();
     const scale = stage.scaleX();
 
+    //handle for select item
     setIsSelecting(true);
     setSelectionBox({
       start: {
@@ -208,10 +207,11 @@ const App: React.FC = () => {
           width={STAGE_WIDTH}
           height={STAGE_HEIGHT}
           ref={stageRef}
-          // draggable
+          draggable={actionType === ACTION.Hand}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
+          style={{ cursor: actionType === ACTION.Hand ? "grab" : "default" }}
         >
           <Layer>
             <GridMap stageRef={stageRef} />
@@ -220,7 +220,7 @@ const App: React.FC = () => {
                 key={circle.id}
                 x={circle.x}
                 y={circle.y}
-                draggable
+                draggable={actionType === ACTION.Mouse}
                 onClick={(e) => {
                   e.cancelBubble = true;
                   handleSeatClick(circle);
@@ -247,23 +247,10 @@ const App: React.FC = () => {
 
             <GhostSeat ghostSeat={ghostSeat} stageRef={stageRef} />
 
-            {/* Vẽ selection box */}
-            {isSelecting && selectionBox.start && selectionBox.current && (
-              <Group>
-                <Rect
-                  x={Math.min(selectionBox.start.x, selectionBox.current.x)}
-                  y={Math.min(selectionBox.start.y, selectionBox.current.y)}
-                  width={Math.abs(
-                    selectionBox.current.x - selectionBox.start.x
-                  )}
-                  height={Math.abs(
-                    selectionBox.current.y - selectionBox.start.y
-                  )}
-                  fill="rgba(0, 0, 255, 0.1)"
-                  stroke="blue"
-                />
-              </Group>
-            )}
+            <SelectionBox
+              isSelecting={isSelecting}
+              selectionBox={selectionBox}
+            />
           </Layer>
         </Stage>
       </div>
