@@ -10,10 +10,14 @@ import {
   STAGE_HEIGHT,
   STAGE_WIDTH,
 } from "./constants";
-import Action, { ACTION } from "./components/map/Action";
+import Action from "./components/map/Action";
 import GhostSeat from "./components/map/seat/GhostSeat";
 import SelectionBox from "./components/map/SelectionBox";
 import Konva from "konva";
+import { ActionType } from "./types/action";
+import { ShapeData } from "./types/shape";
+import ShapeRenderer from "./components/shapes/ShapeRenderer";
+import ShapePreview from "./components/shapes/ShapePreview";
 
 interface SeatData {
   id: number;
@@ -28,7 +32,7 @@ const PRESET_COLORS = ["#FF0000", "#00FF00", "#0000FF", "#FFD700"];
 
 const App: React.FC = () => {
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
-  const [actionType, setActionType] = useState<ACTION>(ACTION.Mouse);
+  const [actionType, setActionType] = useState<ActionType>(ActionType.Mouse);
   const stageRef = useRef<Konva.Stage | null>(null);
 
   const [seats, setSeats] = useState<SeatData[]>([]);
@@ -44,6 +48,14 @@ const App: React.FC = () => {
     current: { x: number; y: number } | null;
   }>({ start: null, current: null });
   const [isSelecting, setIsSelecting] = useState(false);
+
+  // Add new state for shapes
+  const [shapes, setShapes] = useState<ShapeData[]>([]);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [previewShape, setPreviewShape] = useState<ShapeData | null>(null);
+  const [polygonPoints, setPolygonPoints] = useState<number[]>([]);
 
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -85,11 +97,30 @@ const App: React.FC = () => {
     const snappedX = Math.round(correctedX / GRID_SIZE) * GRID_SIZE;
     const snappedY = Math.round(correctedY / GRID_SIZE) * GRID_SIZE;
 
-    if (actionType === ACTION.Seat && ghostSeat) {
+    if (actionType === ActionType.Seat && ghostSeat) {
       setSeats((prev) => [
         ...prev,
         { id: Date.now(), x: snappedX, y: snappedY, name: "" },
       ]);
+    } else if (actionType === ActionType.PolygonShape) {
+      if (polygonPoints.length >= 4) {
+        const [firstX, firstY] = polygonPoints;
+        const distance = Math.hypot(firstX - correctedX, firstY - correctedY);
+        if (distance < 20) {
+          setShapes((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              type: "polygon",
+              points: [...polygonPoints],
+            },
+          ]);
+          setPolygonPoints([]);
+          setPreviewShape(null);
+          return;
+        }
+      }
+      setPolygonPoints((prev) => [...prev, correctedX, correctedY]);
     }
   };
 
@@ -104,7 +135,7 @@ const App: React.FC = () => {
     const correctedX = (pointer.x - stage.x()) / scale;
     const correctedY = (pointer.y - stage.y()) / scale;
 
-    if (actionType === ACTION.Seat) {
+    if (actionType === ActionType.Seat) {
       setGhostSeat({
         x: Math.round(correctedX / GRID_SIZE) * GRID_SIZE,
         y: Math.round(correctedY / GRID_SIZE) * GRID_SIZE,
@@ -128,6 +159,39 @@ const App: React.FC = () => {
           }))
         );
       }
+    } else if (
+      startPoint &&
+      (actionType === ActionType.RectShape || actionType === ActionType.CircleShape)
+    ) {
+      let newPreview: ShapeData | null = null;
+      if (actionType === ActionType.RectShape) {
+        newPreview = {
+          id: Date.now().toString(),
+          type: "rect",
+          x: startPoint.x,
+          y: startPoint.y,
+          width: correctedX - startPoint.x,
+          height: correctedY - startPoint.y,
+        };
+      } else if (actionType === ActionType.CircleShape) {
+        newPreview = {
+          id: Date.now().toString(),
+          type: "circle",
+          x: startPoint.x,
+          y: startPoint.y,
+          radius: Math.hypot(
+            correctedX - startPoint.x,
+            correctedY - startPoint.y
+          ),
+        };
+      }
+      setPreviewShape(newPreview);
+    } else if (actionType === ActionType.PolygonShape && polygonPoints.length > 0) {
+      setPreviewShape({
+        id: Date.now().toString(),
+        type: "polygon",
+        points: [...polygonPoints, correctedX, correctedY],
+      });
     }
   };
 
@@ -169,32 +233,55 @@ const App: React.FC = () => {
     );
   };
 
-  const handleMouseDown = () => {
-    if (!stageRef.current) return;
-    if (actionType !== ACTION.Mouse) return;
+  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    if (actionType === ActionType.Mouse) {
+      //handle for select item
+      if (!stageRef.current) return;
+      const stage = stageRef.current.getStage();
+      const point = stage.getPointerPosition();
+      const scale = stage.scaleX();
 
-    const stage = stageRef.current;
-    const point = stage.getPointerPosition();
-    const scale = stage.scaleX();
-
-    if (!point) return;
-    //handle for select item
-    setIsSelecting(true);
-    setSelectionBox({
-      start: {
+      if (!point) return;
+      //handle for select item
+      setIsSelecting(true);
+      setSelectionBox({
+        start: {
+          x: (point.x - stage.x()) / scale,
+          y: (point.y - stage.y()) / scale,
+        },
+        current: {
+          x: (point.x - stage.x()) / scale,
+          y: (point.y - stage.y()) / scale,
+        },
+      });
+    } else if (
+      actionType === ActionType.RectShape ||
+      actionType === ActionType.CircleShape
+    ) {
+      if (!stageRef.current) return;
+      const stage = stageRef.current.getStage();
+      const point = stage.getPointerPosition();
+      if (!point) return;
+      const scale = stage.scaleX();
+      setStartPoint({
         x: (point.x - stage.x()) / scale,
         y: (point.y - stage.y()) / scale,
-      },
-      current: {
-        x: (point.x - stage.x()) / scale,
-        y: (point.y - stage.y()) / scale,
-      },
-    });
+      });
+    }
   };
 
   const handleMouseUp = () => {
-    setIsSelecting(false);
-    setSelectionBox({ start: null, current: null });
+    if (actionType === ActionType.Mouse) {
+      setIsSelecting(false);
+      setSelectionBox({ start: null, current: null });
+    } else if (
+      previewShape &&
+      (actionType === ActionType.RectShape || actionType === ActionType.CircleShape)
+    ) {
+      setShapes([...shapes, previewShape]);
+      setPreviewShape(null);
+      setStartPoint(null);
+    }
   };
 
   const handleDeleteSelectedSeats = () => {
@@ -215,20 +302,29 @@ const App: React.FC = () => {
           width={STAGE_WIDTH}
           height={STAGE_HEIGHT}
           ref={stageRef}
-          draggable={actionType === ACTION.Hand}
+          draggable={actionType === ActionType.Hand}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          style={{ cursor: actionType === ACTION.Hand ? "grab" : "default" }}
+          style={{ cursor: actionType === ActionType.Hand ? "grab" : "default" }}
         >
           <Layer>
             <GridMap stageRef={stageRef} />
+
+            {/* Replace shape rendering with new components */}
+            <ShapeRenderer shapes={shapes} actionType={actionType} />
+            <ShapePreview
+              previewShape={previewShape}
+              actionType={actionType}
+              polygonPoints={polygonPoints}
+            />
+
             {seats.map((circle) => (
               <Group
                 key={circle.id}
                 x={circle.x}
                 y={circle.y}
-                draggable={actionType === ACTION.Mouse}
+                draggable={actionType === ActionType.Mouse}
                 onClick={(e) => {
                   e.cancelBubble = true;
                   handleSeatClick(circle);
@@ -310,13 +406,13 @@ const App: React.FC = () => {
           </div>
           <div className="flex justify-end gap-2 mt-3">
             <button
-              className="!bg-blue-500 text-white px-4 py-2 rounded"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
               onClick={handleSaveSeat}
             >
               Save
             </button>
             <button
-              className="!bg-red-500 text-white px-4 py-2 rounded"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
               onClick={handleDeleteSeat}
             >
               Delete

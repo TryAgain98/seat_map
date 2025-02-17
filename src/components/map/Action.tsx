@@ -1,15 +1,16 @@
-import { CircleIcon, MousePointer, Hand } from "lucide-react";
-
-export enum ACTION {
-  Mouse = "Mouse",
-  Seat = "Seat",
-  RectShape = "RectShape",
-  Hand = "Hand",
-}
+import {
+  CircleIcon,
+  MousePointer,
+  Hand,
+  RectangleHorizontal,
+  Armchair,
+  Waypoints,
+} from "lucide-react";
+import { ActionType } from "../../types/action";
 
 interface IProps {
-  actionType: ACTION;
-  setActionType: (actionType: ACTION) => void;
+  actionType: ActionType;
+  setActionType: (actionType: ActionType) => void;
   setGhostSeat: (
     value: {
       x: number;
@@ -20,12 +21,12 @@ interface IProps {
 
 function Action({ actionType, setActionType, setGhostSeat }: IProps) {
   const handleCircleClick = (e: React.MouseEvent<SVGElement>) => {
-    setActionType(ACTION.Seat);
+    setActionType(ActionType.Seat);
     const { clientX, clientY } = e;
     setGhostSeat({ x: clientX, y: clientY });
   };
 
-  const getActiveColor = (type: ACTION) => {
+  const getActiveColor = (type: ActionType) => {
     if (actionType === type) {
       return "blue";
     }
@@ -35,25 +36,52 @@ function Action({ actionType, setActionType, setGhostSeat }: IProps) {
   return (
     <div className="flex flex-col bg-gray-300 items-center gap-2 p-2">
       <MousePointer
-        color={getActiveColor(ACTION.Mouse)}
+        color={getActiveColor(ActionType.Mouse)}
         className="cursor-pointer"
         onClick={() => {
           setGhostSeat(null);
-          setActionType(ACTION.Mouse);
+          setActionType(ActionType.Mouse);
         }}
       />
-      <CircleIcon
+      <Armchair
         onMouseDown={handleCircleClick}
-        color={getActiveColor(ACTION.Seat)}
+        color={getActiveColor(ActionType.Seat)}
         className="cursor-pointer"
       />
 
       <Hand
-        color={getActiveColor(ACTION.Hand)}
+        color={getActiveColor(ActionType.Hand)}
         className="cursor-pointer"
         onClick={() => {
           setGhostSeat(null);
-          setActionType(ACTION.Hand);
+          setActionType(ActionType.Hand);
+        }}
+      />
+
+      <RectangleHorizontal
+        color={getActiveColor(ActionType.RectShape)}
+        className="cursor-pointer"
+        onClick={() => {
+          setGhostSeat(null);
+          setActionType(ActionType.RectShape);
+        }}
+      />
+
+      <CircleIcon
+        color={getActiveColor(ActionType.CircleShape)}
+        className="cursor-pointer"
+        onClick={() => {
+          setGhostSeat(null);
+          setActionType(ActionType.CircleShape);
+        }}
+      />
+
+      <Waypoints
+        color={getActiveColor(ActionType.PolygonShape)}
+        className="cursor-pointer"
+        onClick={() => {
+          setGhostSeat(null);
+          setActionType(ActionType.PolygonShape);
         }}
       />
     </div>
