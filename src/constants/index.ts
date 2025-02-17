@@ -11,3 +11,4 @@ export const SEAT = {
 export const DEFAULT_SHAPE_COLOR = "#c9cbcc";
 export const DEFAULT_SHAPE_PREVIEW_FILL_COLOR = "#c9cbccaa";
 export const DEFAULT_SHAPE_PREVIEW_STROKE_COLOR = "#c9cbcc";
+export const SELECTED_SHAPE_STROKE_COLOR = "0000ffaa";

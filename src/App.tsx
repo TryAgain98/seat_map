@@ -19,6 +19,7 @@ import { ShapeData } from "./types/shape";
 import { ShapeRenderer } from "./components/shapes/ShapeRenderer";
 import { ShapePreview } from "./components/shapes/ShapePreview";
 import { useShapeDrawer } from "./components/shapes/useShapeDrawer";
+import { EditShape } from "./components/edit-shapes";
 
 interface SeatData {
   id: number;
@@ -52,6 +53,7 @@ const App: React.FC = () => {
 
   // Add new state for shapes
   const [shapes, setShapes] = useState<ShapeData[]>([]);
+  const [selectedShape, setSelectedShape] = useState<ShapeData | null>(null);
 
   const {
     previewShape,
@@ -230,11 +232,19 @@ const App: React.FC = () => {
     setSeats((prev) => prev.filter((seat) => !seat.isSelected));
   };
 
+  // Update the setActionType handler
+  const handleActionTypeChange = (newActionType: ActionType) => {
+    setActionType(newActionType);
+    // Deselect shape when changing tools
+    setSelectedShape(null);
+    setGhostSeat(null);
+  };
+
   return (
     <div className="flex gap-1 p-5">
       <Action
         actionType={actionType}
-        setActionType={setActionType}
+        setActionType={handleActionTypeChange}
         setGhostSeat={setGhostSeat}
       />
       <div className="border-gray-300 border-[1px]">
@@ -255,8 +265,13 @@ const App: React.FC = () => {
           <Layer>
             <GridMap stageRef={stageRef} />
 
-            {/* Replace shape rendering with new components */}
-            <ShapeRenderer shapes={shapes} actionType={actionType} />
+            <ShapeRenderer
+              shapes={shapes}
+              setShapes={setShapes}
+              actionType={actionType}
+              selectedShape={selectedShape}
+              setSelectedShape={setSelectedShape}
+            />
             <ShapePreview
               previewShape={previewShape}
               actionType={actionType}
@@ -320,7 +335,7 @@ const App: React.FC = () => {
           Delete seats {seatsDeleted.length}
         </button>
       )}
-      {/* edit form */}
+      {/* edit seat form */}
       {selectedSeat && (
         <div className=" top-5 right-5 bg-white shadow-lg p-4 border rounded-md">
           <h2 className="text-lg font-bold text-center">Edit Info</h2>
@@ -363,6 +378,25 @@ const App: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+      {/* edit shape form */}
+      {selectedShape && (
+        <EditShape
+          shapeData={selectedShape}
+          onSave={(updatedShape) => {
+            setShapes((prev) =>
+              prev.map((shape) =>
+                shape.id === selectedShape.id ? updatedShape : shape
+              )
+            );
+          }}
+          onDelete={() => {
+            setShapes((prev) =>
+              prev.filter((shape) => shape.id !== selectedShape.id)
+            );
+            setSelectedShape(null);
+          }}
+        />
       )}
     </div>
   );

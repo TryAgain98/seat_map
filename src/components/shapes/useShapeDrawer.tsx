@@ -3,6 +3,7 @@ import { ActionType } from "../../types/action";
 import { ShapeData } from "../../types/shape";
 import Konva from "konva";
 import React, { useState } from "react";
+import { DEFAULT_SHAPE_COLOR } from "../../constants";
 
 interface ShapeDrawerProps {
   actionType: ActionType;
@@ -49,16 +50,17 @@ export function useShapeDrawer({
       let newPreview: ShapeData | null = null;
       if (actionType === ActionType.RectShape) {
         newPreview = {
-          id: Date.now().toString(),
+          id: `rect-${Date.now().toString()}`,
           type: "rect",
           x: startPoint.x,
           y: startPoint.y,
           width: correctedX - startPoint.x,
           height: correctedY - startPoint.y,
+          color: DEFAULT_SHAPE_COLOR,
         };
       } else if (actionType === ActionType.CircleShape) {
         newPreview = {
-          id: Date.now().toString(),
+          id: `circle-${Date.now().toString()}`,
           type: "circle",
           x: startPoint.x,
           y: startPoint.y,
@@ -66,6 +68,7 @@ export function useShapeDrawer({
             correctedX - startPoint.x,
             correctedY - startPoint.y
           ),
+          color: DEFAULT_SHAPE_COLOR,
         };
       }
       setPreviewShape(newPreview);
@@ -74,9 +77,10 @@ export function useShapeDrawer({
       polygonPoints.length > 0
     ) {
       setPreviewShape({
-        id: Date.now().toString(),
+        id: `polygon-${Date.now().toString()}`,
         type: "polygon",
         points: [...polygonPoints, correctedX, correctedY],
+        color: DEFAULT_SHAPE_COLOR,
       });
     }
   };
@@ -102,9 +106,10 @@ export function useShapeDrawer({
           setShapes((prev) => [
             ...prev,
             {
-              id: Date.now().toString(),
+              id: `polygon-${Date.now().toString()}`,
               type: "polygon",
               points: [...polygonPoints],
+              color: DEFAULT_SHAPE_COLOR,
             },
           ]);
           setPolygonPoints([]);
