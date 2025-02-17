@@ -16,8 +16,9 @@ import SelectionBox from "./components/map/SelectionBox";
 import Konva from "konva";
 import { ActionType } from "./types/action";
 import { ShapeData } from "./types/shape";
-import ShapeRenderer from "./components/shapes/ShapeRenderer";
-import ShapePreview from "./components/shapes/ShapePreview";
+import { ShapeRenderer } from "./components/shapes/ShapeRenderer";
+import { ShapePreview } from "./components/shapes/ShapePreview";
+import { useShapeDrawer } from "./components/shapes/useShapeDrawer";
 
 interface SeatData {
   id: number;
@@ -51,11 +52,20 @@ const App: React.FC = () => {
 
   // Add new state for shapes
   const [shapes, setShapes] = useState<ShapeData[]>([]);
-  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(
-    null
-  );
-  const [previewShape, setPreviewShape] = useState<ShapeData | null>(null);
-  const [polygonPoints, setPolygonPoints] = useState<number[]>([]);
+
+  const {
+    previewShape,
+    polygonPoints,
+    handleShapeMouseDown,
+    handleShapeMouseMove,
+    handleShapeMouseUp,
+    handleShapeClick,
+  } = useShapeDrawer({
+    actionType,
+    stageRef,
+    shapes,
+    setShapes,
+  });
 
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -94,33 +104,13 @@ const App: React.FC = () => {
     const correctedX = (pointer.x - stage.x()) / scale;
     const correctedY = (pointer.y - stage.y()) / scale;
 
-    const snappedX = Math.round(correctedX / GRID_SIZE) * GRID_SIZE;
-    const snappedY = Math.round(correctedY / GRID_SIZE) * GRID_SIZE;
-
     if (actionType === ActionType.Seat && ghostSeat) {
       setSeats((prev) => [
         ...prev,
-        { id: Date.now(), x: snappedX, y: snappedY, name: "" },
+        { id: Date.now(), x: correctedX, y: correctedY, name: "" },
       ]);
-    } else if (actionType === ActionType.PolygonShape) {
-      if (polygonPoints.length >= 4) {
-        const [firstX, firstY] = polygonPoints;
-        const distance = Math.hypot(firstX - correctedX, firstY - correctedY);
-        if (distance < 20) {
-          setShapes((prev) => [
-            ...prev,
-            {
-              id: Date.now().toString(),
-              type: "polygon",
-              points: [...polygonPoints],
-            },
-          ]);
-          setPolygonPoints([]);
-          setPreviewShape(null);
-          return;
-        }
-      }
-      setPolygonPoints((prev) => [...prev, correctedX, correctedY]);
+    } else {
+      handleShapeClick(correctedX, correctedY);
     }
   };
 
@@ -131,7 +121,6 @@ const App: React.FC = () => {
     if (!pointer) return;
 
     const scale = stage.scaleX();
-
     const correctedX = (pointer.x - stage.x()) / scale;
     const correctedY = (pointer.y - stage.y()) / scale;
 
@@ -159,39 +148,8 @@ const App: React.FC = () => {
           }))
         );
       }
-    } else if (
-      startPoint &&
-      (actionType === ActionType.RectShape || actionType === ActionType.CircleShape)
-    ) {
-      let newPreview: ShapeData | null = null;
-      if (actionType === ActionType.RectShape) {
-        newPreview = {
-          id: Date.now().toString(),
-          type: "rect",
-          x: startPoint.x,
-          y: startPoint.y,
-          width: correctedX - startPoint.x,
-          height: correctedY - startPoint.y,
-        };
-      } else if (actionType === ActionType.CircleShape) {
-        newPreview = {
-          id: Date.now().toString(),
-          type: "circle",
-          x: startPoint.x,
-          y: startPoint.y,
-          radius: Math.hypot(
-            correctedX - startPoint.x,
-            correctedY - startPoint.y
-          ),
-        };
-      }
-      setPreviewShape(newPreview);
-    } else if (actionType === ActionType.PolygonShape && polygonPoints.length > 0) {
-      setPreviewShape({
-        id: Date.now().toString(),
-        type: "polygon",
-        points: [...polygonPoints, correctedX, correctedY],
-      });
+    } else {
+      handleShapeMouseMove(correctedX, correctedY);
     }
   };
 
@@ -254,19 +212,8 @@ const App: React.FC = () => {
           y: (point.y - stage.y()) / scale,
         },
       });
-    } else if (
-      actionType === ActionType.RectShape ||
-      actionType === ActionType.CircleShape
-    ) {
-      if (!stageRef.current) return;
-      const stage = stageRef.current.getStage();
-      const point = stage.getPointerPosition();
-      if (!point) return;
-      const scale = stage.scaleX();
-      setStartPoint({
-        x: (point.x - stage.x()) / scale,
-        y: (point.y - stage.y()) / scale,
-      });
+    } else {
+      handleShapeMouseDown(e);
     }
   };
 
@@ -274,20 +221,15 @@ const App: React.FC = () => {
     if (actionType === ActionType.Mouse) {
       setIsSelecting(false);
       setSelectionBox({ start: null, current: null });
-    } else if (
-      previewShape &&
-      (actionType === ActionType.RectShape || actionType === ActionType.CircleShape)
-    ) {
-      setShapes([...shapes, previewShape]);
-      setPreviewShape(null);
-      setStartPoint(null);
+    } else {
+      handleShapeMouseUp();
     }
   };
 
   const handleDeleteSelectedSeats = () => {
     setSeats((prev) => prev.filter((seat) => !seat.isSelected));
   };
-  console.log({ seats });
+
   return (
     <div className="flex gap-1 p-5">
       <Action
@@ -306,7 +248,9 @@ const App: React.FC = () => {
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          style={{ cursor: actionType === ActionType.Hand ? "grab" : "default" }}
+          style={{
+            cursor: actionType === ActionType.Hand ? "grab" : "default",
+          }}
         >
           <Layer>
             <GridMap stageRef={stageRef} />

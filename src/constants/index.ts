@@ -7,3 +7,7 @@ export const MAX_SCALE = 2;
 export const SEAT = {
   RADIUS: 10,
 };
+
+export const DEFAULT_SHAPE_COLOR = "#c9cbcc";
+export const DEFAULT_SHAPE_PREVIEW_FILL_COLOR = "#c9cbccaa";
+export const DEFAULT_SHAPE_PREVIEW_STROKE_COLOR = "#c9cbcc";

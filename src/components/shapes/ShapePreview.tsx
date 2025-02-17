@@ -1,13 +1,15 @@
 import { Circle, Line, Rect } from "react-konva";
 import { ShapeData } from "../../types/shape";
 import { ActionType } from "../../types/action";
+import { DEFAULT_SHAPE_PREVIEW_FILL_COLOR } from "../../constants";
+import { DEFAULT_SHAPE_PREVIEW_STROKE_COLOR } from "../../constants";
 interface ShapePreviewProps {
   previewShape: ShapeData | null;
   actionType: ActionType;
   polygonPoints: number[];
 }
 
-function ShapePreview({
+export function ShapePreview({
   previewShape,
   actionType,
   polygonPoints,
@@ -17,13 +19,21 @@ function ShapePreview({
       {/* Preview shapes */}
       {previewShape &&
         (previewShape.type === "rect" ? (
-          <Rect {...previewShape} fill="rgba(255,0,0,0.3)" stroke="red" />
+          <Rect
+            {...previewShape}
+            fill={DEFAULT_SHAPE_PREVIEW_FILL_COLOR}
+            stroke={DEFAULT_SHAPE_PREVIEW_STROKE_COLOR}
+          />
         ) : previewShape.type === "circle" ? (
-          <Circle {...previewShape} fill="rgba(0,0,255,0.3)" stroke="blue" />
+          <Circle
+            {...previewShape}
+            fill={DEFAULT_SHAPE_PREVIEW_FILL_COLOR}
+            stroke={DEFAULT_SHAPE_PREVIEW_STROKE_COLOR}
+          />
         ) : previewShape.type === "polygon" ? (
           <Line
             points={previewShape.points!}
-            stroke="black"
+            stroke={DEFAULT_SHAPE_PREVIEW_STROKE_COLOR}
             strokeWidth={2}
             dash={[5, 5]}
           />
@@ -36,7 +46,7 @@ function ShapePreview({
           {polygonPoints.length > 0 && (
             <Line
               points={polygonPoints}
-              stroke="black"
+              stroke={DEFAULT_SHAPE_PREVIEW_STROKE_COLOR}
               strokeWidth={2}
               closed={false}
             />
@@ -50,7 +60,7 @@ function ShapePreview({
                 x={polygonPoints[index * 2]}
                 y={polygonPoints[index * 2 + 1]}
                 radius={4}
-                fill="black"
+                fill={DEFAULT_SHAPE_PREVIEW_STROKE_COLOR}
               />
             ))}
         </>
@@ -58,5 +68,3 @@ function ShapePreview({
     </>
   );
 }
-
-export default ShapePreview;

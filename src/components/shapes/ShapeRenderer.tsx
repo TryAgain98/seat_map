@@ -1,13 +1,14 @@
 import { Circle, Line, Rect } from "react-konva";
 import { ShapeData } from "../../types/shape";
 import { ActionType } from "../../types/action";
+import { DEFAULT_SHAPE_COLOR } from "../../constants";
 
 interface ShapeRendererProps {
   shapes: ShapeData[];
   actionType: ActionType;
 }
 
-function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
+export function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
   return (
     <>
       {shapes.map((shape, i) => {
@@ -17,7 +18,10 @@ function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
               key={i}
               {...shape}
               draggable={actionType === ActionType.Mouse}
-              fill="red"
+              fill={shape.color || DEFAULT_SHAPE_COLOR}
+              onClick={() => {
+                console.log("clicked", shape);
+              }}
             />
           );
         }
@@ -27,7 +31,7 @@ function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
               key={i}
               draggable={actionType === ActionType.Mouse}
               {...shape}
-              fill="blue"
+              fill={shape.color || DEFAULT_SHAPE_COLOR}
             />
           );
         }
@@ -36,11 +40,10 @@ function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
             <Line
               key={i}
               points={shape.points!}
-              fill="green"
+              fill={shape.color || DEFAULT_SHAPE_COLOR}
               closed
               draggable={actionType === ActionType.Mouse}
-              stroke="black"
-              strokeWidth={2}
+              strokeWidth={0}
             />
           );
         }
@@ -49,5 +52,3 @@ function ShapeRenderer({ shapes, actionType }: ShapeRendererProps) {
     </>
   );
 }
-
-export default ShapeRenderer;
