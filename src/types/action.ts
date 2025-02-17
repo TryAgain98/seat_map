@@ -5,4 +5,5 @@ export enum ActionType {
   RectShape = "RectShape",
   CircleShape = "CircleShape",
   PolygonShape = "PolygonShape",
+  Text = "Text",
 }

@@ -19,7 +19,11 @@ import { ShapeData } from "./types/shape";
 import { ShapeRenderer } from "./components/shapes/ShapeRenderer";
 import { ShapePreview } from "./components/shapes/ShapePreview";
 import { useShapeDrawer } from "./components/shapes/useShapeDrawer";
-import { EditShape } from "./components/edit-shapes";
+import { ShapeEditor } from "./components/shapes/ShapeEditor";
+import { TextRenderer } from "./components/text/TextRenderer";
+import { useTextDrawer } from "./components/text/useTextDrawer";
+import { TextData } from "./types/text";
+import { TextEditor } from "./components/text/TextEditor";
 
 interface SeatData {
   id: number;
@@ -55,6 +59,12 @@ const App: React.FC = () => {
   const [shapes, setShapes] = useState<ShapeData[]>([]);
   const [selectedShape, setSelectedShape] = useState<ShapeData | null>(null);
 
+  // Add text state
+  const [texts, setTexts] = useState<TextData[]>([]);
+
+  // Add selected text state
+  const [selectedText, setSelectedText] = useState<TextData | null>(null);
+
   const {
     previewShape,
     polygonPoints,
@@ -67,6 +77,18 @@ const App: React.FC = () => {
     stageRef,
     shapes,
     setShapes,
+  });
+
+  // Add text drawer hook
+  const { handleTextClick, handleTextDblClick } = useTextDrawer({
+    actionType,
+    stageRef,
+    texts,
+    setTexts,
+    onAdded: (textData) => {
+      setSelectedText(textData);
+      setActionType(ActionType.Mouse);
+    },
   });
 
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
@@ -111,6 +133,8 @@ const App: React.FC = () => {
         ...prev,
         { id: Date.now(), x: correctedX, y: correctedY, name: "" },
       ]);
+    } else if (actionType === ActionType.Text) {
+      handleTextClick(correctedX, correctedY);
     } else {
       handleShapeClick(correctedX, correctedY);
     }
@@ -235,8 +259,8 @@ const App: React.FC = () => {
   // Update the setActionType handler
   const handleActionTypeChange = (newActionType: ActionType) => {
     setActionType(newActionType);
-    // Deselect shape when changing tools
     setSelectedShape(null);
+    setSelectedText(null);
     setGhostSeat(null);
   };
 
@@ -267,7 +291,6 @@ const App: React.FC = () => {
 
             <ShapeRenderer
               shapes={shapes}
-              setShapes={setShapes}
               actionType={actionType}
               selectedShape={selectedShape}
               setSelectedShape={setSelectedShape}
@@ -322,6 +345,15 @@ const App: React.FC = () => {
             <SelectionBox
               isSelecting={isSelecting}
               selectionBox={selectionBox}
+            />
+
+            <TextRenderer
+              texts={texts}
+              setTexts={setTexts}
+              actionType={actionType}
+              selectedText={selectedText}
+              setSelectedText={setSelectedText}
+              handleTextDblClick={handleTextDblClick}
             />
           </Layer>
         </Stage>
@@ -381,21 +413,17 @@ const App: React.FC = () => {
       )}
       {/* edit shape form */}
       {selectedShape && (
-        <EditShape
-          shapeData={selectedShape}
-          onSave={(updatedShape) => {
-            setShapes((prev) =>
-              prev.map((shape) =>
-                shape.id === selectedShape.id ? updatedShape : shape
-              )
-            );
-          }}
-          onDelete={() => {
-            setShapes((prev) =>
-              prev.filter((shape) => shape.id !== selectedShape.id)
-            );
-            setSelectedShape(null);
-          }}
+        <ShapeEditor
+          data={shapes}
+          setData={setShapes}
+          selectedId={selectedShape.id}
+        />
+      )}
+      {selectedText && (
+        <TextEditor
+          data={texts}
+          selectedId={selectedText.id}
+          setData={setTexts}
         />
       )}
     </div>

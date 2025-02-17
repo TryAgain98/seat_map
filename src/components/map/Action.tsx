@@ -5,6 +5,7 @@ import {
   RectangleHorizontal,
   Armchair,
   Waypoints,
+  TypeOutline,
 } from "lucide-react";
 import { ActionType } from "../../types/action";
 
@@ -82,6 +83,15 @@ function Action({ actionType, setActionType, setGhostSeat }: IProps) {
         onClick={() => {
           setGhostSeat(null);
           setActionType(ActionType.PolygonShape);
+        }}
+      />
+
+      <TypeOutline
+        color={getActiveColor(ActionType.Text)}
+        className="cursor-pointer"
+        onClick={() => {
+          setGhostSeat(null);
+          setActionType(ActionType.Text);
         }}
       />
     </div>
